@@ -1,0 +1,138 @@
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<title>守住时间</title>
+	<link rel="stylesheet" href="../utils/layui/css/layui.css">
+	<script src="../utils/ajax.js"></script>
+	<script src="../utils/layui/layui.js"></script>
+	<script src="../utils/layer.mobile/layer_mobile/layer.js"></script>
+	<script src="../utils/layui/font/jquery-3.4.1.min.js"></script>
+	<script src="../utils/getForm.js"></script>
+</head>
+<script id="scriptAcademy" type="text/html">
+	<ul class="layui-timeline">
+	{{#layui.each(d.academy_data, function(index, item){ }}
+		<li class="layui-timeline-item">
+			<i class="layui-icon layui-timeline-axis" style="font-size: 25px;" >&#xe66c;</i>
+			<div class="layui-timeline-content layui-text">
+				<h3 class="layui-timeline-title">{{# function getdate(nowtime) {
+								var now = new Date(nowtime),
+                                    y = now.getFullYear(),
+                                    m = now.getMonth() + 1,
+                                    d = now.getDate();
+                                return y + "年" + (m < 10 ? "0" + m : m) + "月" + (d < 10 ? "0" + d : d) + "日 " + now.toTimeString().substr(0, 8);
+                            } }} {{ getdate(item.start_time) }}</h3>
+				<p><h4 style="font-family: 楷体;font-size: 21px;">《{{ item.title }}》</h4>：{{ item.context}}</p>
+				<ul>{{# function getdate2(nowtime) {
+								var now = new Date(nowtime),
+                                    y = now.getFullYear(),
+                                    m = now.getMonth() + 1,
+                                    d = now.getDate();
+                                return  now.toTimeString().substr(0, 8);
+                     } }} 
+					{{# function getchange(stime, etime) {
+						  var usedTime = etime - stime;
+						  var days = Math.floor(usedTime / (24 * 3600 * 1000));
+						  var leave1 = usedTime % (24 * 3600 * 1000);  
+						  var hours = Math.floor(leave1 / (3600 * 1000));
+						  var leave2 = leave1 % (3600 * 1000);        
+						  var minutes = Math.floor(leave2 / (60 * 1000));
+						  var time =  hours + "小时" + minutes + "分钟";
+						  return time;
+					 }}}
+					<li>开始时间：{{ getdate2(item.start_time) }}</li>
+					<li>结束时间：{{ getdate2(item.end_time) }}</li>
+					<li>任务时长：{{ getchange(item.start_time , item.end_time) }}</li>
+				</ul>
+			</div>
+		</li>
+	{{# }); }}
+	{{#  if(d.academy_data.length === 0){ }}
+	<li class="layui-timeline-item">
+	  <i class="layui-icon layui-timeline-axis" style="font-size: 25px;">&#xe664;</i>
+	  <div class="layui-timeline-content layui-text">
+	    <div class="layui-timeline-title"> 今天还没有完成一个任务，要加油！</div>
+	  </div>
+	</li>
+	{{#  } }} 
+	<li class="layui-timeline-item">
+    <i class="layui-icon layui-timeline-axis" style="font-size: 25px;" >&#xe756;</i>
+    <div class="layui-timeline-content layui-text">
+      <div class="layui-timeline-title">继续加油，继续坚持！</div>
+    </div>
+  </li>
+	</ul>
+</script>
+
+<fieldset class="layui-elem-field layui-field-title">
+	<legend>今日满满的收获</legend>
+</fieldset>
+<div style="margin-left:20px;margin-right: 20px;">
+	<div id="viewAcademy"></div>
+</div>
+<!-- <button onclick="test()">按钮</button> -->
+
+<script>
+	//layui.JavaScript代码区域
+	layui.use(['element', 'jquery', 'laytpl', 'util'], function() {
+		var element = layui.element;
+		var $ = layui.$;
+		var laytpl = layui.laytpl;
+		var util = layui.util;
+
+		//页面请求初始化
+		$.ajax({
+			url: "/ControlYourTime/getDoingStatus.doing?pageNumber=1&pageSize=100&order=7",
+			type: 'GET',
+			dataType: 'json',
+			success: function(res) {
+				if (res.code == 0) {
+					var academy = res;
+					var tselectdata1 = {
+						"academy_data": academy.data
+					};
+					var getTpl1 = scriptAcademy.innerHTML;
+					var view = document.getElementById('viewAcademy');
+					laytpl(getTpl1).render(tselectdata1, function(html) {
+						view.innerHTML = html;
+					});
+				} else {
+					//layer.msg(res.msg);
+				}
+			}
+		});
+
+		window.test = function() {
+			//底部对话框
+			layer.open({
+				content: '这是一个底部弹出的询问提示',
+				btn: ['删除', '取消'],
+				skin: 'footer',
+				yes: function(index) {
+					layer.open({
+						content: '执行删除操作'
+					})
+				}
+			});
+		}
+		//演示动画
+		$('.site-doc-icon .layui-anim').on('click', function() {
+			var othis = $(this),
+				anim = othis.data('anim');
+			//停止循环
+			if (othis.hasClass('layui-anim-loop')) {
+				return othis.removeClass(anim);
+			}
+			othis.removeClass(anim);
+			setTimeout(function() {
+				othis.addClass(anim);
+			});
+			//恢复渐隐
+			if (anim === 'layui-anim-fadeout') {
+				setTimeout(function() {
+					othis.removeClass(anim);
+				}, 1300);
+			}
+		});
+	});
+</script>

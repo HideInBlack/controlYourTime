@@ -1,0 +1,360 @@
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<title>守住时间</title>
+	<link rel="stylesheet" href="../utils/layui/css/layui.css">
+	<script src="../utils/ajax.js"></script>
+	<script src="../utils/layui/layui.js"></script>
+	<script src="../utils/layer.mobile/layer_mobile/layer.js"></script>
+	<script src="../utils/layui/font/jquery-3.4.1.min.js"></script>
+	<script src="../utils/getForm.js"></script>
+	<script src="../utils/echarts/echarts.js"></script>
+</head>
+<fieldset class="layui-elem-field layui-field-title">
+	<legend>每日计划清单</legend>
+</fieldset>
+
+<div style="margin-left: 10px;margin-right: 10px;">
+	<table class="layui-hide" id="LAY_table_user" lay-filter="demo" style="font-size: 10px;"></table><br>
+	<form class="layui-form layui-form-pane" action="" id="table_add" lay-filter="form_add">
+		<div class="layui-form-item" pane>
+			<label class="layui-form-label">历史清单</label>
+			<div class="layui-input-block">
+				<input type="text" name="start_time" readonly="" class="layui-input" id="test28" placeholder="选择日期查看历史清单">
+			</div>
+		</div>
+	</form><br>
+	<div id="chart3" style="width: 300px; height: 500px;margin: auto;"></div>
+</div>
+
+<script type="text/html" id="switchTpl">
+	<input type="checkbox" name="status" value="{{d.status}}"  {{# 
+							function getdate(now_time) {
+								var now = new Date(now_time),
+                                    y = now.getFullYear(),
+                                    m = now.getMonth() + 1,
+                                    d = now.getDate();
+                                return y + "年" + (m < 10 ? "0" + m : m) + "月" + (d < 10 ? "0" + d : d) + "日 ";
+							}
+	}}  {{ getdate(parseInt(new Date().getTime())) == getdate(parseInt(d.day_time)) ? '' : 'disabled' }} data-id="{{d.id}}" data-title="{{d.title}}" lay-skin="switch" lay-text="已完成|未完成" lay-filter="sexDemo" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="sexTpl">
+    <span style="color: #F581B1;">{{ sec_to_time(d.start_time) }}</span>
+</script>
+
+<script>
+	//layui.JavaScript代码区域
+	layui.use(['element', 'jquery', 'form', 'table', 'laydate'], function() {
+		var element = layui.element;
+		var table = layui.table;
+		var form = layui.form;
+		var laydate = layui.laydate;
+		var $ = layui.$;
+		
+		
+		//历史清单的记录渲染
+		laydate.render({
+			elem: '#test28',
+			done: function(value, date) {
+				
+				//表格执行重载
+				table.reload('testReload', {
+					url: '/ControlYourTime/getTodayPlan.plan?pageNumber=1&pageSize=100&search=' + value,
+				}, 'data');
+				//图标重载
+				$.ajax({
+					url: "/ControlYourTime/getTodayPlan.plan?pageNumber=1&pageSize=100&search=" + value,
+					type: 'GET',
+					dataType: 'json',
+					success: function(res) {
+						var datax = "[";
+						var datay = "[";
+						if (res.data.length == 0) {
+							layer.msg(value + "这天没有导入计划");
+							document.getElementById("chart3").style.display = "none";
+						} else {
+							layer.msg("正在查看"+value+"清单");
+							document.getElementById("chart3").style.display = "";
+							for (var i = 0; i < res.data.length; i++) {
+								if (i == res.data.length - 1) {
+									datax = datax + "\"" + res.data[i].title + "\"]";
+								} else {
+									datax = datax + "\"" + res.data[i].title + "\",";
+								}
+							}
+							var JSONx = JSON.parse(datax);
+							for (var i = 0; i < res.data.length; i++) {
+								if (i == res.data.length - 1) {
+									datay = datay + "{\"value\":" + (res.data[i].end_time - res.data[i].start_time) / 60 + ",\"name\":\"" + res
+										.data[
+											i].title + "\"}]";
+								} else {
+									datay = datay + "{\"value\":" + (res.data[i].end_time - res.data[i].start_time) / 60 + ",\"name\":\"" + res
+										.data[
+											i].title + "\"},";
+								}
+							}
+							var JSONy = JSON.parse(datay);
+				
+							//第二个chart图表
+							var myChartThird = echarts.init(document.getElementById('chart3'));
+							var optionThird = {
+								title: {
+									text: value,
+									subtext: '时间占比分布',
+									x: 'center'
+								},
+								toolbox: {
+									show: true,
+									feature: {
+										mark: {
+											show: true
+										},
+										dataView: {
+											show: true,
+											readOnly: true
+										},
+										restore: {
+											show: true
+										}
+									}
+								},
+								tooltip: {
+									trigger: 'item',
+									formatter: "{a} <br/>{b} : {c} ({d}%)"
+								},
+								legend: {
+									orient: 'vertical',
+									left: 'left',
+									data: JSONx //['直接访问', '邮件营销', '联盟广告', '视频广告', '搜索引擎']
+								},
+								series: [{
+									name: '计划用时(分钟)',
+									type: 'pie',
+									radius: '55%',
+									center: ['50%', '60%'],
+									data: JSONy,
+									itemStyle: {
+										emphasis: {
+											shadowBlur: 10,
+											shadowOffsetX: 0,
+											shadowColor: 'rgba(0, 0, 0, 0.5)'
+										}
+									}
+								}]
+				
+							};
+							myChartThird.setOption(optionThird);
+						}
+					}
+				});
+			}
+		});
+		//饼状图
+		//初始化
+		$.ajax({
+			url: "/ControlYourTime/getTodayPlan.plan?pageNumber=1&pageSize=100",
+			type: 'GET',
+			dataType: 'json',
+			success: function(res) {
+				var datax = "[";
+				var datay = "[";
+				if (res.data.length == 0) {
+					layer.msg("今天还没有导入计划");
+				} else {
+					for (var i = 0; i < res.data.length; i++) {
+						if (i == res.data.length - 1) {
+							datax = datax + "\"" + res.data[i].title + "\"]";
+						} else {
+							datax = datax + "\"" + res.data[i].title + "\",";
+						}
+					}
+					var JSONx = JSON.parse(datax);
+					for (var i = 0; i < res.data.length; i++) {
+						if (i == res.data.length - 1) {
+							datay = datay + "{\"value\":" + (res.data[i].end_time - res.data[i].start_time) / 60 + ",\"name\":\"" + res
+								.data[
+									i].title + "\"}]";
+						} else {
+							datay = datay + "{\"value\":" + (res.data[i].end_time - res.data[i].start_time) / 60 + ",\"name\":\"" + res
+								.data[
+									i].title + "\"},";
+						}
+					}
+					var JSONy = JSON.parse(datay);
+
+					//第二个chart图表
+					var myChartThird = echarts.init(document.getElementById('chart3'));
+					var optionThird = {
+						title: {
+							text: '今日计划',
+							subtext: '时间占比分布',
+							x: 'center'
+						},
+						toolbox: {
+							show: true,
+							feature: {
+								mark: {
+									show: true
+								},
+								dataView: {
+									show: true,
+									readOnly: true
+								},
+								restore: {
+									show: true
+								}
+							}
+						},
+						tooltip: {
+							trigger: 'item',
+							formatter: "{a} <br/>{b} : {c} ({d}%)"
+						},
+						legend: {
+							orient: 'vertical',
+							left: 'left',
+							data: JSONx //['直接访问', '邮件营销', '联盟广告', '视频广告', '搜索引擎']
+						},
+						series: [{
+							name: '计划用时(分钟)',
+							type: 'pie',
+							radius: '55%',
+							center: ['50%', '60%'],
+							data: JSONy,
+							itemStyle: {
+								emphasis: {
+									shadowBlur: 10,
+									shadowOffsetX: 0,
+									shadowColor: 'rgba(0, 0, 0, 0.5)'
+								}
+							}
+						}]
+
+					};
+					myChartThird.setOption(optionThird);
+				}
+			}
+		});
+
+
+		//监听是否已完成操作
+		form.on('switch(sexDemo)', function(obj) {
+			var id = $(this).attr('data-id');
+			var status = 0;
+			if (obj.elem.checked) { //已完成？
+				status = 1;
+				layer.tips('Bingo！' + $(this).attr('data-title') + '已完成', obj.othis);
+			} else {
+				status = 0;
+				layer.tips($(this).attr('data-title') + '并没有完成啊', obj.othis);
+			}
+			$.ajax({
+				url: "/ControlYourTime/updateTodayPlan.plan",
+				type: 'POST',
+				data: {
+					"id": id,
+					"status": status,
+				},
+				dataType: 'json',
+				success: function(res) {}
+			});
+
+		});
+		//方法级渲染
+		table.render({
+			size: 'sm',
+			elem: '#LAY_table_user',
+			url: '/ControlYourTime/getTodayPlan.plan?pageNumber=1&pageSize=100',
+			cols: [
+				[{
+						field: 'flow_id',
+						title: 'ID',
+						width: 45,
+						fixed: true,
+					},
+					{
+						field: 'title',
+						title: '标题',
+						align: 'center'
+					}, {
+						field: 'start_time',
+						title: '行动时间',
+						align: 'center',
+						sort: true,
+						templet: '#sexTpl'
+					}, {
+						fixed: 'right',
+						field: 'status',
+						align: 'center',
+						title: '是否已完成',
+						width: 110,
+						templet: '#switchTpl',
+						unresize: true
+					}
+				]
+			],
+			id: 'testReload',
+			limit: 10,
+			//height: 250
+		});
+		//监听行单击事件（双击事件为：rowDouble）
+		table.on('rowDouble(demo)', function(obj) {
+			var data = obj.data;
+			layer.open({
+				type: 1,
+				skin: 'layui-layer-rim',
+				title: '详情', //标题栏
+				closeBtn: 1,
+				area: ['300px', '265px'],
+				shade: 0.1,
+				id: 'LAY_layuipro', //设定一个id，防止重复弹出 
+				btnAlign: 'c',
+				moveType: 1, //拖拽模式，0或者1
+				content: '<div style="margin-left: 10px;margin-right: 10px;margin-top:3px;">' +
+					'<form class="layui-form layui-form-pane" action="" id="table_update" lay-filter="form_update">' +
+					'<div class="layui-form-item">' +
+					'<label class="layui-form-label">标题</label>' +
+					'<div class="layui-input-block">' +
+					'<input type="text" name="title" required  readonly="" lay-verify="required" placeholder="计划标题" autocomplete="off" class="layui-input">' +
+					'</div>' +
+					' </div>' +
+					'<div class="layui-form-item" pane>' +
+					'<label class="layui-form-label">开始时间</label>' +
+					'<div class="layui-input-block">' +
+					' <input style="color: #F581B1;" type="text" name="start_time" readonly="" class="layui-input" id="test8" placeholder="时:分:秒">' +
+					'</div>' +
+					' </div>' +
+					'<div class="layui-form-item" pane>' +
+					'<label class="layui-form-label">结束时间</label>' +
+					'<div class="layui-input-block">' +
+					' <input style="color: #1E9FFF;" type="text" name="end_time"  readonly="" class="layui-input" id="test9" placeholder="时:分:秒">' +
+					'</div>' +
+					' </div>' +
+					'<div class="layui-form-item" pane>' +
+					'<label class="layui-form-label">内容</label>' +
+					'<div class="layui-input-block">' +
+					'<textarea name="context" placeholder="计划简要内容" readonly="" class="layui-textarea"></textarea>' +
+					//'<input type="text" name="context" required  lay-verify="required" placeholder="计划简要内容" autocomplete="off" class="layui-input">' +
+					'</div>' +
+					' </div>' +
+					'  </form>' +
+					'</div>',
+				success: function() {
+					form.render();
+					form.val("form_update", {
+						"start_time": sec_to_time(data.start_time),
+						"end_time": sec_to_time(data.end_time),
+						"title": data.title,
+						"context": data.context
+					});
+				},
+				yes: function() {
+					layer.closeAll();
+				}
+
+			});
+			//标注选中样式
+			obj.tr.addClass('layui-table-click').siblings().removeClass('layui-table-click');
+		});
+	});
+</script>

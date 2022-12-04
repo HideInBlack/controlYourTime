@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<c3p0-config>
+	<named-config name="controlTime">
+
+		<property name="user">root</property>
+		<property name="password">dxt032312.</property>
+		<property name="jdbcUrl">jdbc:mysql:///controlTime</property>
+		<property name="driverClass">com.mysql.jdbc.Driver</property>
+		<property name="acquireIncrement">5</property>
+		<property name="initialPoolSize">15</property>
+		<property name="minPoolSize">15</property>
+		<property name="maxPoolSize">70</property>
+		<property name="maxStatements">50</property>
+		<property name="maxStatementsPerConnection">15</property>
+
+	</named-config>
+</c3p0-config>

@@ -1,0 +1,88 @@
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<title>守住时间</title>
+	<link rel="stylesheet" href="../utils/layui/css/layui.css">
+	<script src="../utils/ajax.js"></script>
+	<script src="../utils/layui/layui.js"></script>
+	<script src="../utils/layer.mobile/layer_mobile/layer.js"></script>
+	<script src="../utils/layui/font/jquery-3.4.1.min.js"></script>
+	<script src="../utils/getForm.js"></script>
+</head>
+<fieldset class="layui-elem-field layui-field-title">
+	<legend>个人信息</legend>
+</fieldset>
+
+<div style="margin-left: 10px;margin-right: 10px;">
+	<center><img src="../utils/image/gif/飞机白云.gif" style="width: 340px;height: 240px;" /></center>
+	<form class="layui-form layui-form-pane" action="" id="table_add" lay-filter="form_add">
+		<div class="layui-form-item" pane>
+			<label class="layui-form-label">昵称</label>
+			<div class="layui-input-block">
+				<input type="text" name="name" class="layui-input" readonly="" placeholder="">
+			</div>
+		</div>
+		<!-- <div class="layui-form-item" pane>
+			<label class="layui-form-label">旧密码</label>
+			<div class="layui-input-block">
+				<input type="password" name="old_password" class="layui-input" placeholder="请输入旧密码">
+			</div>
+		</div> -->
+		<div class="layui-form-item" pane>
+			<label class="layui-form-label">新密码</label>
+			<div class="layui-input-block">
+				<input type="password" name="new_password" class="layui-input" placeholder="请输入新密码">
+			</div>
+		</div>
+		<div class="layui-form-item" pane>
+			<label class="layui-form-label">确认密码</label>
+			<div class="layui-input-block">
+				<input type="password" name="sure_password" class="layui-input" placeholder="确认密码">
+			</div>
+		</div>
+	</form>
+	<center><button class="layui-btn layui-btn-sm layui-btn-normal" onclick="updatepwd()">确认修改</button></center>
+</div>
+<script>
+	//layui.JavaScript代码区域
+	layui.use(['element', 'jquery', 'form', 'table', 'laydate'], function() {
+		var element = layui.element;
+		var table = layui.table;
+		var form = layui.form;
+		var laydate = layui.laydate;
+		var $ = layui.$;
+		//初始化昵称
+		$.ajax({
+			url: '/ControlYourTime/getSession.login',
+			type: 'GET',
+			dataType: 'json',
+			success: function(res) {
+					form.val("form_add", {
+					"name": res.name
+				});
+			},
+		});
+		window.updatepwd = function(){
+			var JSONdata = JSON.parse(JSON.stringify($('#table_add').serializeObject()));
+			if (JSONdata.old_password == "" || JSONdata.new_password == "" || JSONdata.sure_password == "" ) {
+				layer.msg("请先完善必需信息！");
+			} else {
+				if(JSONdata.new_password != JSONdata.sure_password){
+					layer.msg("两次密码不一样！");
+				}else{
+					$.ajax({
+						url: '/ControlYourTime/updatepwd.myself',
+						type: 'POST',
+						dataType: 'json',
+						data: {
+							"password": JSONdata.new_password,
+						},
+						success: function(res) {
+							layer.msg(res.msg);
+						},
+					});
+				}
+			}
+		}
+	});
+</script>

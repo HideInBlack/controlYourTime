@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<title>守住时间</title>
+		<link rel="stylesheet" href="../utils/layui/css/layui.css">
+		<script src="../utils/ajax.js"></script>
+		<script src="../utils/layui/layui.js"></script>
+		<script src="../utils/layer.mobile/layer_mobile/layer.js"></script>
+		<script src="../utils/layui/font/jquery-3.4.1.min.js"></script>
+	</head>
+	<body class="layui-layout-body">
+		<div class="layui-layout layui-layout-admin">
+			<div class="layui-header" style="background: #5FB878;">
+				<div class="layui-logo" style="color: #FBFBFB;font-family: 楷体;font-size: 20px;"><img src="../utils/image/headImg/boy.jpg"
+					 class="layui-nav-img" style="width: 45px;height: 45px;">守住时间</div>
+				<ul class="layui-nav layui-layout-left">
+					<li class="layui-nav-item"><i class="layui-icon layui-icon-auz" style="font-size: 20px;">&nbsp;</i></li>
+				</ul>
+				<ul class="layui-nav layui-layout-right">
+					<li class="layui-nav-item"><a href="javascript:;" onclick="">
+							<img src="../utils/image/headImg/t2.jpg" class="layui-nav-img" id="headImage"></a>
+						<dl class="layui-nav-child">
+							<dd><a href="javascript:;" onclick="setClick('../client/myself.html')">个人信息</a></dd>
+							<dd><a href="javascript:;" onclick="loginOut()">退出</a></dd>
+						</dl>
+					</li>
+				</ul>
+			</div>
+
+			<div>
+				<!-- style="height: 523px;width: 100%;" -->
+				<iframe id="body" src="../client/clientHome.html" frameborder="no" border="0" onload="changeFrameHeight()" style="width: 100%;position: fixed;top: 60px;"></iframe>
+			</div>
+
+			<ul class="site-doc-icon site-doc-anim layui-nav" lay-filter="" style="position: fixed;bottom: 0;width: 100%;background: #5FB878;height: 53px;">
+				<li class="layui-nav-item" style="width: 20%;"><a href="javascript:;" onclick="setClick('../client/setPlan.html')">
+						<div class="layui-anim" data-anim="layui-anim-up"><i class="layui-icon layui-icon-survey" style="font-size: 26px;"></i></div>
+					</a></li>
+				<li class="layui-nav-item" style="width: 20%;"><a href="javascript:;" onclick="setClick('../client/viewPlan.html')">
+						<div class="layui-anim" data-anim="layui-anim-up"><i class="layui-icon layui-icon-read" style="font-size: 26px;"></i></div>
+					</a></li>
+				<li class="layui-nav-item layui-this" style="width: 20%;"><a href="javascript:;" onclick="setClick('../client/clientHome.html')">
+						<div class="layui-anim" data-anim="layui-anim-up"><i class="layui-icon layui-icon-home" style="font-size: 26px;"></i></div>
+					</a></li>
+				<li class="layui-nav-item" style="width: 20%;"><a href="javascript:;" onclick="setClick('../client/count.html')">
+						<div class="layui-anim" data-anim="layui-anim-up"><i class="layui-icon layui-icon-log" style="font-size: 26px;"></i></div>
+					</a></li>
+				<li class="layui-nav-item" style="width: 20%;"><a href="javascript:;" onclick="setClick('../client/todayRecord.html')">
+						<div class="layui-anim" data-anim="layui-anim-up"><i class="layui-icon layui-icon-form" style="font-size: 26px;"></i></div>
+					</a></li>
+			</ul>
+		</div>
+
+		<script>
+			//自适应高度 iframe
+			function changeFrameHeight() {
+				var ifm = document.getElementById("body");
+				ifm.height = document.documentElement.clientHeight-113;
+			}
+			window.onresize = function() {
+				changeFrameHeight();
+			}
+			//退出登录
+			function loginOut() {
+				layer.open({
+					content: '您确定要退出吗？',
+					btn: ['退出登录', '取消'],
+					skin: 'footer',
+					yes: function(index) {
+						ajax.post("/ControlYourTime/loginOut.login", "", loginHandle);
+						layer.close(index);
+					}
+				});
+			}
+			//退出登录回调函数处理
+			var loginHandle = function(res) {
+				var resJSON = JSON.parse(res);
+				if (resJSON.ok) {
+					layer.open({
+						content: resJSON.name + resJSON.msg,
+						skin: 'msg',
+						time: 2 //2秒后自动关闭
+					});
+				} else {
+					layer.open({
+						content: resJSON.msg,
+						skin: 'msg',
+						time: 2 //2秒后自动关闭
+					});
+				}
+				setInterval(function() {
+					window.location.href = resJSON.href;
+				}, 1500)
+			}
+			//getSession回调函数处理
+			var getHandle = function(res) {
+				var resJSON = JSON.parse(res);
+				console.log(resJSON);
+			}
+			// $('iframe').src='ReportList.html';
+			function setClick(target) {
+				document.getElementById("body").src = target;
+			}
+			//layui.JavaScript代码区域
+			layui.use(['element', 'jquery'], function() {
+				var element = layui.element;
+				var $ = layui.$;
+
+				ajax.post("/ControlYourTime/getSession.login", "", getHandle);
+
+				//演示动画
+				$('.site-doc-icon .layui-anim').on('click', function() {
+					var othis = $(this),
+						anim = othis.data('anim');
+					//停止循环
+					if (othis.hasClass('layui-anim-loop')) {
+						return othis.removeClass(anim);
+					}
+					othis.removeClass(anim);
+					setTimeout(function() {
+						othis.addClass(anim);
+					});
+					//恢复渐隐
+					if (anim === 'layui-anim-fadeout') {
+						setTimeout(function() {
+							othis.removeClass(anim);
+						}, 1300);
+					}
+				});
+			});
+		</script>
+	</body>
+
+</html>

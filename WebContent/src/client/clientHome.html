@@ -1,0 +1,188 @@
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<title>ControlYourTime</title>
+	<link rel="stylesheet" href="../utils/layui/css/layui.css">
+	<script src="../utils/ajax.js"></script>
+	<script src="../utils/layui/layui.js"></script>
+	<script src="../utils/layui/font/jquery-3.4.1.min.js"></script>
+	<script src="../utils/getForm.js"></script>
+</head>
+<body>
+	<fieldset class="layui-elem-field layui-field-title">
+		<legend>开始行动Go</legend>
+	</fieldset>
+	<div style="margin-left:20px;margin-right: 20px;">
+
+		<form class="layui-form layui-form-pane" lay-filter="form_begin" id="form_begin" action="">
+			<div class="layui-form-item" pane>
+				<label class="layui-form-label">任务标题：</label>
+				<div class="layui-input-block">
+					<input type="text" name="title" required lay-verify="required" placeholder="请输入概要标题" autocomplete="off" class="layui-input">
+				</div>
+			</div>
+			<div class="layui-form-item" pane>
+				<label class="layui-form-label">内容简要：</label>
+				<div class="layui-input-block">
+					<textarea name="context" placeholder="请输入简要内容" class="layui-textarea"></textarea>
+					<!-- <input type="text" name="context" required lay-verify="required" placeholder="请输入简要内容" autocomplete="off" class="layui-input"> -->
+				</div>
+			</div>
+		</form>
+		<ul class="site-doc-icon site-doc-anim" style="margin-top: 3px;">
+			<li>
+				<div class="layui-anim" data-anim="layui-anim-scaleSpring" id="animI" onclick="begin()">
+					<i class="layui-icon layui-icon-play" id="keyid" key="begin" style="font-size: 150px;margin-left: 92px;color:#5FB878 ;">&nbsp;</i>
+				</div>
+			</li>
+		</ul>
+		<blockquote class="layui-elem-quote" style="margin-top: 10px;">
+			<label>已经进行：</label><label id="test1"></label>
+		</blockquote>
+		<blockquote class="layui-elem-quote" style="margin-top: 10px;">
+			<label>开始时间：</label><label id="test2"></label>
+		</blockquote>
+		<blockquote class="layui-elem-quote" style="margin-top: 10px;">
+			<label>结束时间：</label><label id="test3"></label>
+		</blockquote>
+	</div>
+</body>
+<script>
+	//layui.JavaScript代码区域
+	layui.use(['element', 'jquery', 'util', 'laydate', 'form'], function() {
+		var element = layui.element;
+		var util = layui.util;
+		var laydate = layui.laydate;
+		var form = layui.form;
+		var $ = layui.$;
+
+		//页面请求初始化
+		$.ajax({
+			url: "/ControlYourTime/getDoingStatus.doing?pageNumber=1&pageSize=10",
+			type: 'GET',
+			dataType: 'json',
+			success: function(res) {
+				if (res.ok!=false) { 
+					if(res.data.length !=0 ){//有正在运行的任务
+						form.val("form_begin", {
+							"title": res.data[0].title,
+							"context": res.data[0].context
+						});
+						form.render();
+						$(function() { //正计时方法
+							line(res.data[0].start_time);
+						});
+						lay('#test2').html(util.toDateString(res.data[0].start_time, 'yyyy-MM-dd HH:mm:ss'));
+						document.getElementById("animI").innerHTML ='<img src="../utils/image/gif/boy.gif" id="keyid" key="end" class="layui-nav-img" style="height: 197px; width: 200px;margin-left: 67px;">';
+					}else{
+						layer.msg("暂未开始任务行动！");
+					}
+				} else {
+					layer.msg(res.msg);
+				}
+			}
+		});
+
+		//点击开始计时事件
+		window.begin = function() {
+			//开始的点击
+			var start_time = new Date().getTime(); //获得现在的时间
+			var key = $('#keyid').attr('key');
+			if (key == 'begin') { //开始的点击
+				var JSONdata = JSON.parse(JSON.stringify($('#form_begin').serializeObject()));
+				if (JSONdata.title == "" || JSONdata.context == "") {
+					layer.msg("请先完善必需信息！");
+				} else {
+					$(function() { //正计时方法
+						line(start_time);
+					});
+					lay('#test2').html(util.toDateString(start_time, 'yyyy-MM-dd HH:mm:ss')); //开始时间
+					lay('#test3').html(''); //结束时间
+					document.getElementById("animI").innerHTML =
+						'<img src="../utils/image/gif/boy.gif" id="keyid" key="end" class="layui-nav-img" style="height: 197px; width: 200px;margin-left: 67px;">';
+					//开始点击的请求
+					$.ajax({
+						url: "/ControlYourTime/addDoingRecord.doing",
+						type: 'POST',
+						data: {
+							"title": JSONdata.title,
+							"context": JSONdata.context,
+							"start_time": start_time
+						},
+						dataType: 'json',
+						success: function(res) {
+							layer.msg(res.msg);
+						}
+					});
+				}
+
+			} else if (key == 'end') { //停止点击
+				
+				layer.open({
+					type: 1,
+					skin: 'layui-layer-rim',
+					title: '停止任务', //标题栏
+					closeBtn: false,
+					area: ['240px', '150px'],
+					shade: 0.1,
+					id: 'LAY_layuipro_sure', //设定一个id，防止重复弹出 
+					btn: ['确定', '取消'],
+					btnAlign: 'c',
+					moveType: 1, //拖拽模式，0或者1
+					content: '&emsp;&emsp;确定要完成此任务吗',
+					success: function() {},
+					yes: function() {
+						//先判断时间是否超过1分钟
+						if ((start_time - Date.parse(new Date(document.getElementById("test2").innerText))) / (60 * 1000) < 1) {
+							layer.closeAll();
+							layer.msg("还没坚持一分钟，不可停止任务！")
+						} else {
+							form.val("form_begin", { //初始化为空
+								"title": '',
+								"context": ''
+							});
+							clearTimeout(clearTimeId);
+							lay('#test3').html(util.toDateString(start_time, 'yyyy-MM-dd HH:mm:ss'));
+							document.getElementById("animI").innerHTML =
+								'<i class="layui-icon layui-icon-play" id="keyid" key="begin" style="font-size: 150px;margin-left: 92px;color:#5FB878 ;">&nbsp;</i>';
+							//结束点击的请求
+							$.ajax({
+								url: "/ControlYourTime/updateDoing.doing",
+								type: 'POST',
+								data: {
+									"end_time": start_time
+								},
+								dataType: 'json',
+								success: function(res) {
+									layer.closeAll();
+									layer.msg(res.msg);
+								}
+							});
+						}
+					}
+				});
+			}
+
+		};
+
+		//演示动画
+		$('.site-doc-icon .layui-anim').on('click', function() {
+			var othis = $(this),
+				anim = othis.data('anim');
+			//停止循环
+			if (othis.hasClass('layui-anim-loop')) {
+				return othis.removeClass(anim);
+			}
+			othis.removeClass(anim);
+			setTimeout(function() {
+				othis.addClass(anim);
+			});
+			//恢复渐隐
+			if (anim === 'layui-anim-fadeout') {
+				setTimeout(function() {
+					othis.removeClass(anim);
+				}, 1300);
+			}
+		});
+
+	});
+</script>
